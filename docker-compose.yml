@@ -1,0 +1,263 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: memora-postgres
+    environment:
+      POSTGRES_USER: memora
+      POSTGRES_PASSWORD: memora_password
+      POSTGRES_DB: memora
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - memora-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memora"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ChromaDB Vector Database
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: memora-chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - memora-network
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_PORT=8000
+      - ANONYMIZED_TELEMETRY=False
+
+  # Ollama LLM Service (using local Ollama at http://localhost:11434)
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: memora-ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   networks:
+  #     - memora-network
+  #   environment:
+  #     - OLLAMA_KEEP_ALIVE=-1
+  #   command: >
+  #     sh -c "
+  #     ollama serve &
+  #     sleep 10 &&
+  #     ollama pull llama3.1:8b &&
+  #     ollama pull nomic-embed-text &&
+  #     tail -f /dev/null
+  #     "
+
+  # Gateway Service
+  gateway-service:
+    build:
+      context: ./services/gateway-service
+      dockerfile: Dockerfile
+    container_name: memora-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8001
+      - PARTNER_SERVICE_URL=http://partner-service:8002
+      - CHAT_SERVICE_URL=http://chat-service:8003
+      - MEMORY_SERVICE_URL=http://memory-service:8004
+      - RAG_SERVICE_URL=http://rag-service:8005
+      - MEDIA_SERVICE_URL=http://media-service:8006
+      - INSIGHT_SERVICE_URL=http://insight-service:8007
+      - SCHEDULER_SERVICE_URL=http://scheduler-service:8008
+      - JWT_SECRET=your-secret-key-change-in-production
+      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+    depends_on:
+      - postgres
+      - auth-service
+      - partner-service
+      - chat-service
+      - memory-service
+      - rag-service
+      - media-service
+      - insight-service
+      - scheduler-service
+      - chroma
+    networks:
+      - memora-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: memora-auth
+    ports:
+      - "8001:8001"
+    environment:
+      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+      - JWT_SECRET=your-secret-key-change-in-production
+      - SERVICE_PORT=8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - memora-network
+
+  # Partner Service
+  partner-service:
+    build:
+      context: ./services/partner-service
+      dockerfile: Dockerfile
+    container_name: memora-partner
+    ports:
+      - "8002:8002"
+    environment:
+      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+      - JWT_SECRET=your-secret-key-change-in-production
+      - SERVICE_PORT=8002
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - memora-network
+
+  # Chat Service
+  chat-service:
+    build:
+      context: ./services/chat-service
+      dockerfile: Dockerfile
+    container_name: memora-chat
+    ports:
+      - "8003:8003"
+    environment:
+      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+      - JWT_SECRET=your-secret-key-change-in-production
+      - RAG_SERVICE_URL=http://rag-service:8005
+      - SERVICE_PORT=8003
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rag-service:
+        condition: service_started
+    networks:
+      - memora-network
+
+  # Memory Service
+  memory-service:
+    build:
+      context: ./services/memory-service
+      dockerfile: Dockerfile
+    container_name: memora-memory
+    ports:
+      - "8004:8004"
+    environment:
+      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+      - CHROMA_URL=http://chroma:8000
+      - JWT_SECRET=your-secret-key-change-in-production
+      - MEDIA_SERVICE_URL=http://media-service:8006
+      - SERVICE_PORT=8004
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+      media-service:
+        condition: service_started
+    networks:
+      - memora-network
+
+  # RAG Service
+  rag-service:
+    build:
+      context: ./services/rag-service
+      dockerfile: Dockerfile
+    container_name: memora-rag
+    ports:
+      - "8005:8005"
+    environment:
+      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+      - CHROMA_URL=http://chroma:8000
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - JWT_SECRET=your-secret-key-change-in-production
+      - SERVICE_PORT=8005
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chroma:
+        condition: service_started
+    networks:
+      - memora-network
+
+  # Media Service
+  media-service:
+    build:
+      context: ./services/media-service
+      dockerfile: Dockerfile
+    container_name: memora-media
+    ports:
+      - "8006:8006"
+    environment:
+      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+      - JWT_SECRET=your-secret-key-change-in-production
+      - SERVICE_PORT=8006
+      - MEDIA_STORAGE_PATH=/app/media
+    volumes:
+      - media_storage:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - memora-network
+
+  # Insight Service
+  insight-service:
+    build:
+      context: ./services/insight-service
+      dockerfile: Dockerfile
+    container_name: memora-insight
+    ports:
+      - "8007:8007"
+    environment:
+      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+      - JWT_SECRET=your-secret-key-change-in-production
+      - SERVICE_PORT=8007
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - memora-network
+
+  # Scheduler Service
+  scheduler-service:
+    build:
+      context: ./services/scheduler-service
+      dockerfile: Dockerfile
+    container_name: memora-scheduler
+    ports:
+      - "8008:8008"
+    environment:
+      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+      - JWT_SECRET=your-secret-key-change-in-production
+      - MEMORY_SERVICE_URL=http://memory-service:8004
+      - SERVICE_PORT=8008
+    depends_on:
+      postgres:
+        condition: service_healthy
+      memory-service:
+        condition: service_started
+    networks:
+      - memora-network
+
+volumes:
+  postgres_data:
+  chroma_data:
+  media_storage:
+
+networks:
+  memora-network:
+    driver: bridge
