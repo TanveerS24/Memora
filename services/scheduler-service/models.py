@@ -55,11 +55,3 @@ class LoveFeedHistory(Base):
     couple_id = Column(String(36), ForeignKey("couples.couple_id"), nullable=False, index=True)
     memory_id = Column(String(36), ForeignKey("memories.memory_id"), nullable=False, index=True)
     shown_at = Column(DateTime, nullable=False)
-
-
-class Couple(Base):
-    __tablename__ = "couples"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    couple_id = Column(String(36), unique=True, index=True, nullable=False)
-    anniversary_date = Column(DateTime, nullable=True)

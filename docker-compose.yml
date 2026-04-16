@@ -26,7 +26,7 @@ services:
     image: chromadb/chroma:latest
     container_name: memora-chroma
     ports:
-      - "8001:8000"
+      - "5000:5000"
     volumes:
       - chroma_data:/chroma/chroma
     networks:

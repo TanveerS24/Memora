@@ -1,14 +1,31 @@
 import chromadb
 from chromadb.config import Settings
 import os
+from urllib.parse import urlparse
 
 
 class ChromaClient:
     def __init__(self):
-        chroma_url = os.getenv("CHROMA_URL", "http://chroma:8000")
-        self.client = chromadb.HttpClient(host=chroma_url.split("://")[1], port=8000)
+        self._client = None
+        self._collection = None
         self.collection_name = "memora_memories"
-        self.collection = self._get_or_create_collection()
+    
+    @property
+    def client(self):
+        if self._client is None:
+            chroma_url = os.getenv("CHROMA_URL", "http://chroma:8000")
+            parsed = urlparse(chroma_url)
+            self._client = chromadb.HttpClient(
+                host=parsed.hostname,
+                port=parsed.port or 8000
+            )
+        return self._client
+    
+    @property
+    def collection(self):
+        if self._collection is None:
+            self._collection = self._get_or_create_collection()
+        return self._collection
     
     def _get_or_create_collection(self):
         try:
