@@ -11,6 +11,7 @@ import Chat from './components/Chat';
 import Memories from './components/Memories';
 import LoveFeed from './components/LoveFeed';
 import Insights from './components/Insights';
+import Profile from './components/Profile';
 
 const App = () => {
   const { token } = useStore();
@@ -32,6 +33,7 @@ const App = () => {
             <Route path="/memories" element={<Memories />} />
             <Route path="/lovefeed" element={<LoveFeed />} />
             <Route path="/insights" element={<Insights />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<Navigate to="/partner" />} />
           </>
         )}

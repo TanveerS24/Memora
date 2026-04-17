@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { partnerAPI } from '../api/api';
+import { Link } from 'react-router-dom';
 
 const Partner = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,7 +94,20 @@ const Partner = () => {
         maxWidth: '800px',
         margin: '0 auto'
       }}>
-        <h1 style={{ color: 'white', textAlign: 'center', marginBottom: '10px' }}>Find Your Partner</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h1 style={{ color: 'white', margin: 0 }}>Find Your Partner</h1>
+          <Link to="/profile" style={{
+            padding: '10px 20px',
+            background: 'white',
+            color: '#667eea',
+            textDecoration: 'none',
+            borderRadius: '8px',
+            fontWeight: 'bold',
+            fontSize: '14px'
+          }}>
+            View My UID
+          </Link>
+        </div>
         <p style={{ color: 'white', textAlign: 'center', marginBottom: '40px' }}>
           Search by UID or username to connect
         </p>

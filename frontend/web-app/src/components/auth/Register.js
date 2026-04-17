@@ -70,10 +70,13 @@ const Register = () => {
           
           <form onSubmit={handleRegister}>
             <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666', fontWeight: '500' }}>
+                Your Full Name
+              </label>
               <input
                 type="text"
                 name="name"
-                placeholder="Full Name"
+                placeholder="Enter your full name"
                 value={formData.name}
                 onChange={handleChange}
                 style={{
@@ -87,10 +90,13 @@ const Register = () => {
             </div>
             
             <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666', fontWeight: '500' }}>
+                Email Address
+              </label>
               <input
                 type="email"
                 name="email"
-                placeholder="Email"
+                placeholder="Enter your email address"
                 value={formData.email}
                 onChange={handleChange}
                 style={{
@@ -104,10 +110,13 @@ const Register = () => {
             </div>
             
             <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666', fontWeight: '500' }}>
+                Create Password
+              </label>
               <input
                 type="password"
                 name="password"
-                placeholder="Password (min 8 characters)"
+                placeholder="Create a secure password (minimum 8 characters)"
                 value={formData.password}
                 onChange={handleChange}
                 style={{
@@ -121,26 +130,53 @@ const Register = () => {
             </div>
             
             <div style={{ marginBottom: '15px' }}>
-              <input
-                type="text"
-                name="gender"
-                placeholder="Gender (male/female/other)"
-                value={formData.gender}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
-              />
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666', fontWeight: '500' }}>
+                Gender Identity
+              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, gender: 'male' })}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    border: formData.gender === 'male' ? '2px solid #f5576c' : '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    background: formData.gender === 'male' ? '#fff5f7' : 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Male
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, gender: 'female' })}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    border: formData.gender === 'female' ? '2px solid #f5576c' : '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    background: formData.gender === 'female' ? '#fff5f7' : 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Female
+                </button>
+              </div>
             </div>
             
             <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666', fontWeight: '500' }}>
+                Date of Birth
+              </label>
               <input
                 type="date"
                 name="dob"
+                placeholder="Select your date of birth"
                 value={formData.dob}
                 onChange={handleChange}
                 style={{

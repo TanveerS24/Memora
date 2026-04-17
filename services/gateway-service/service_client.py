@@ -21,16 +21,16 @@ class ServiceClient:
         
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             if method == "GET":
-                response = await client.get(url, headers=headers, params=params)
+                response = await client.get(url, params=params)
             elif method == "POST":
                 if files:
-                    response = await client.post(url, headers=headers, data=json_data, files=files)
+                    response = await client.post(url, data=json_data, files=files)
                 else:
-                    response = await client.post(url, headers=headers, json=json_data)
+                    response = await client.post(url, json=json_data)
             elif method == "PUT":
-                response = await client.put(url, headers=headers, json=json_data)
+                response = await client.put(url, json=json_data)
             elif method == "DELETE":
-                response = await client.delete(url, headers=headers)
+                response = await client.delete(url)
             else:
                 return {"error": "Invalid method"}, 405
             

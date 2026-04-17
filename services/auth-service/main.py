@@ -69,6 +69,14 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     # Hash password
     password_hash = get_password_hash(user_data.password)
     
+    # Convert string gender to GenderEnum
+    from models import GenderEnum
+    gender_enum = GenderEnum(user_data.gender.lower())
+    
+    # Convert string dob to date
+    from datetime import datetime
+    dob_date = datetime.strptime(user_data.dob, "%Y-%m-%d").date()
+    
     # Create user
     new_user = User(
         uid=uid,
@@ -76,8 +84,8 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         email=user_data.email,
         password_hash=password_hash,
         name=user_data.name,
-        gender=user_data.gender,
-        dob=user_data.dob,
+        gender=gender_enum,
+        dob=dob_date,
         profile_picture=user_data.profile_picture,
         is_active=True,
         couple_id=None,

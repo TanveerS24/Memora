@@ -14,8 +14,8 @@ class UserRegister(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=8)
-    gender: GenderEnum
-    dob: date
+    gender: str  # Accept string instead of GenderEnum for frontend compatibility
+    dob: str  # Accept string instead of date for frontend compatibility
     profile_picture: Optional[str] = None
 
 

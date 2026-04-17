@@ -1,9 +1,18 @@
 import axios from 'axios';
+import { useStore } from '../store/useStore';
 
 const API_BASE_URL = 'http://localhost:8000/api';
+const AUTH_BASE_URL = 'http://localhost:8001';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+const authApi = axios.create({
+  baseURL: AUTH_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,10 +26,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+authApi.interceptors.request.use((config) => {
+  const token = useStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const authAPI = {
-  register: (data) => api.post('/auth/register', data),
-  login: (data) => api.post('/auth/login', data),
-  getMe: () => api.get('/auth/me'),
+  register: (data) => authApi.post('/register', data),
+  login: (data) => authApi.post('/login', data),
+  getMe: () => authApi.get('/me'),
 };
 
 export const partnerAPI = {

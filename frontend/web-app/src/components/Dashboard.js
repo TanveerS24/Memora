@@ -77,6 +77,21 @@ const Dashboard = () => {
               <p style={{ color: '#666' }}>Relationship analytics and trends</p>
             </div>
           </Link>
+
+          <Link to="/profile" style={{ textDecoration: 'none' }}>
+            <div style={{
+              background: 'white',
+              padding: '30px',
+              borderRadius: '16px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+              cursor: 'pointer',
+              transition: 'transform 0.2s'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '15px' }}>👤</div>
+              <h3 style={{ marginBottom: '10px' }}>Profile</h3>
+              <p style={{ color: '#666' }}>View your profile and logout</p>
+            </div>
+          </Link>
         </div>
 
         <div style={{

@@ -58,9 +58,12 @@ const Login = () => {
           
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666', fontWeight: '500' }}>
+                Email Address
+              </label>
               <input
                 type="email"
-                placeholder="Email"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={{
@@ -74,9 +77,12 @@ const Login = () => {
             </div>
             
             <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666', fontWeight: '500' }}>
+                Password
+              </label>
               <input
                 type="password"
-                placeholder="Password"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{
