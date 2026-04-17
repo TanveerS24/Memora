@@ -7,7 +7,6 @@ from database import engine, get_db, Base
 from models import MemoryChunk, Memory
 from schemas import RAGQuery, RAGResponse, RAGMode
 from auth import decode_token
-from chroma_client import chroma_client
 from ollama_client import ollama_client
 from prompt_builder import PromptBuilder
 
@@ -50,12 +49,9 @@ def query_memories(
     # Build where clause
     where = build_where_clause(rag_data.couple_id, rag_data.include_archived)
     
-    # Query ChromaDB
-    results = chroma_client.query(
-        query_text=rag_data.query,
-        n_results=8,
-        where=where
-    )
+    # Query ChromaDB (stubbed for now)
+    # TODO: Re-enable ChromaDB when dependency issues are resolved
+    results = {"documents": [[]], "metadatas": [[]]}
     
     # Extract memories
     memories = []

@@ -16,9 +16,6 @@ from schemas import (
 from auth import decode_token
 from utils import generate_memory_id, generate_chunk_id, chunk_text, count_tokens, should_archive
 from emotion_detector import emotion_detector
-from chroma_client import chroma_client
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Memory Service", version="1.0.0")
 
@@ -153,18 +150,6 @@ def confirm_memory(
         )
         db.add(chunk)
         db.commit()
-        
-        # Add to ChromaDB
-        chroma_client.add_embedding(
-            chunk_id=chunk.chunk_id,
-            text=chunk.chunk_text,
-            metadata={
-                "memory_id": memory.memory_id,
-                "couple_id": memory.couple_id,
-                "emotion": memory.emotion_tag.value,
-                "layer": memory.layer.value
-            }
-        )
     
     db.commit()
     db.refresh(memory)

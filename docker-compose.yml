@@ -1,6 +1,13 @@
 version: '3.8'
 
 services:
+  memora-base:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+    image: memora-base:latest
+    profiles:
+      - base
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
