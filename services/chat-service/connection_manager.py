@@ -7,7 +7,7 @@ class ConnectionManager:
         self.active_connections: Dict[str, List[WebSocket]] = {}
     
     async def connect(self, couple_id: str, websocket: WebSocket):
-        await websocket.accept()
+        # WebSocket is already accepted by FastAPI
         if couple_id not in self.active_connections:
             self.active_connections[couple_id] = []
         self.active_connections[couple_id].append(websocket)

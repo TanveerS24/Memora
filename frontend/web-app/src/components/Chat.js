@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import { chatAPI } from '../api/api';
 
@@ -7,12 +7,60 @@ const Chat = () => {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const wsRef = useRef(null);
   
   const { user, partner } = useStore();
 
+  const connectWebSocket = useCallback(() => {
+    if (!user?.uid) return;
+
+    const wsUrl = `ws://localhost:8003/ws?user_id=${user.uid}`;
+    wsRef.current = new WebSocket(wsUrl);
+
+    wsRef.current.onopen = () => {
+      console.log('WebSocket connected');
+    };
+
+    wsRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'message') {
+        setMessages((prevMessages) => {
+          // Check if message already exists to avoid duplicates
+          const exists = prevMessages.some(m => m.message_id === data.data.message_id);
+          if (exists) return prevMessages;
+          return [...prevMessages, data.data];
+        });
+      } else if (data.type === 'typing') {
+        // Handle typing indicator if needed
+        console.log('User typing:', data.data.user_id);
+      } else if (data.type === 'read_receipt') {
+        // Handle read receipt if needed
+        console.log('Message read:', data.data.message_id);
+      }
+    };
+
+    wsRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    wsRef.current.onclose = () => {
+      console.log('WebSocket disconnected');
+      // Attempt to reconnect after 5 seconds
+      setTimeout(connectWebSocket, 5000);
+    };
+  }, [user?.uid]);
+
   useEffect(() => {
     loadMessages();
-  }, []);
+    connectWebSocket();
+    
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [connectWebSocket]);
 
   useEffect(() => {
     scrollToBottom();
@@ -35,7 +83,7 @@ const Chat = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !wsRef.current) return;
 
     const tempMessage = {
       message_id: Date.now().toString(),
@@ -48,11 +96,17 @@ const Chat = () => {
     setMessages([...messages, tempMessage]);
     setInputText('');
 
+    // Send via websocket
+    wsRef.current.send(JSON.stringify({
+      type: 'message',
+      content: inputText
+    }));
+
+    // Also send via API as fallback and for persistence
     try {
       await chatAPI.sendMessage(inputText);
-      loadMessages();
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error sending message via API:', error);
     }
   };
 

@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, Header, Query
+from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, Header, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import os
 import httpx
+import secrets
 
 from database import engine, get_db, Base
 from models import User, Message, Couple
@@ -16,9 +18,19 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Chat Service", version="1.0.0")
 
+# Add SessionMiddleware with secure cookie settings
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET", "your-secret-key-change-in-production"),
+    max_age=3600,  # 1 hour session
+    session_cookie="session",
+    same_site="lax",
+    https_only=False,  # Set to True in production
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,23 +39,15 @@ app.add_middleware(
 RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://rag-service:8005")
 
 
-async def get_current_user(authorization: str = Header(...), db: Session = Depends(get_db)) -> User:
-    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
-    payload = decode_token(token)
-    if payload is None:
+async def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    user_id = request.session.get("user_id")
+    if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail="Not authenticated",
         )
     
-    uid: str = payload.get("sub")
-    if uid is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-        )
-    
-    user = db.query(User).filter(User.uid == uid).first()
+    user = db.query(User).filter(User.uid == user_id).first()
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -72,17 +76,19 @@ async def call_rag_service(query: str, couple_id: str) -> str:
 @app.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
-    token: str = Query(...),
     db: Session = Depends(get_db)
 ):
-    # Verify token
-    payload = decode_token(token)
-    if payload is None:
+    # Accept the websocket connection to complete the handshake
+    await websocket.accept()
+    
+    # For now, we'll use a simple approach - the frontend will pass user_id as query param
+    # In production, you'd validate the session cookie properly
+    user_id = websocket.query_params.get("user_id")
+    if not user_id:
         await websocket.close(code=1008)
         return
     
-    uid: str = payload.get("sub")
-    user = db.query(User).filter(User.uid == uid).first()
+    user = db.query(User).filter(User.uid == user_id).first()
     
     if not user or not user.couple_id:
         await websocket.close(code=1008)

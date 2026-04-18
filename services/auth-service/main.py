@@ -19,12 +19,11 @@ app = FastAPI(title="Auth Service", version="1.0.0")
 # Add SessionMiddleware with secure cookie settings
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET", secrets.token_urlsafe(32)),
+    secret_key=os.getenv("SESSION_SECRET", "your-secret-key-change-in-production"),
     max_age=3600,  # 1 hour session
     session_cookie="session",
     same_site="lax",
     https_only=False,  # Set to True in production
-    domain="localhost",  # Share cookie across ports on localhost
 )
 
 app.add_middleware(
