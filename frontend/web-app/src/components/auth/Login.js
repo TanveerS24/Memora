@@ -10,7 +10,6 @@ const Login = () => {
   const navigate = useNavigate();
   
   const setUser = useStore((state) => state.setUser);
-  const setToken = useStore((state) => state.setToken);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -22,14 +21,10 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await authAPI.login({ email, password });
-      const { access_token } = response.data;
-      setToken(access_token);
-      
-      const userResponse = await authAPI.getMe();
-      setUser(userResponse.data);
-      
+      setUser(response.data);
       navigate('/partner');
     } catch (error) {
+      console.error('Login error:', error);
       alert('Login Failed: ' + (error.response?.data?.detail || 'An error occurred'));
     } finally {
       setLoading(false);

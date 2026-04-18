@@ -3,12 +3,15 @@ import { useStore } from '../store/useStore';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 const AUTH_BASE_URL = 'http://localhost:8001';
+const PARTNER_BASE_URL = 'http://localhost:8002';
+const CHAT_BASE_URL = 'http://localhost:8003';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
 const authApi = axios.create({
@@ -16,42 +19,44 @@ const authApi = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
-api.interceptors.request.use((config) => {
-  const token = useStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+const partnerApi = axios.create({
+  baseURL: PARTNER_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
 });
 
-authApi.interceptors.request.use((config) => {
-  const token = useStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+const chatApi = axios.create({
+  baseURL: CHAT_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
 });
 
 export const authAPI = {
   register: (data) => authApi.post('/register', data),
   login: (data) => authApi.post('/login', data),
   getMe: () => authApi.get('/me'),
+  logout: () => authApi.post('/logout'),
 };
 
 export const partnerAPI = {
-  search: (searchTerm) => api.post('/partner/search', { search_term: searchTerm }),
-  sendRequest: (receiverId) => api.post('/partner/request', { receiver_id: receiverId }),
-  getPendingRequests: () => api.get('/partner/requests/pending'),
-  acceptRequest: (requestId, anniversaryDate) => api.post(`/partner/accept/${requestId}`, { anniversary_date: anniversaryDate }),
-  rejectRequest: (requestId) => api.post(`/partner/reject/${requestId}`),
-  getPartnerInfo: () => api.get('/partner/info'),
+  search: (searchTerm) => partnerApi.post('/search', { search_term: searchTerm }),
+  sendRequest: (receiverId) => partnerApi.post('/request', { receiver_id: receiverId }),
+  getPendingRequests: () => partnerApi.get('/requests/pending'),
+  acceptRequest: (requestId, anniversaryDate) => partnerApi.post(`/accept/${requestId}`, { anniversary_date: anniversaryDate }),
+  rejectRequest: (requestId) => partnerApi.post(`/reject/${requestId}`),
+  getPartnerInfo: () => partnerApi.get('/info'),
 };
 
 export const chatAPI = {
-  getHistory: (limit = 50, offset = 0) => api.get('/chat/history', { params: { limit, offset } }),
-  sendMessage: (content) => api.post('/chat/send', { content }),
+  getHistory: (limit = 50, offset = 0) => chatApi.get('/history', { params: { limit, offset } }),
+  sendMessage: (content) => chatApi.post('/send', { content }),
 };
 
 export const memoryAPI = {

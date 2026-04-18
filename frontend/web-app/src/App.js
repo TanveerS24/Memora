@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/useStore';
+import { authAPI } from './api/api';
 
 // Components
 import Login from './components/auth/Login';
@@ -14,12 +15,26 @@ import Insights from './components/Insights';
 import Profile from './components/Profile';
 
 const App = () => {
-  const { token } = useStore();
+  const { isAuthenticated, setUser, logout } = useStore();
+
+  useEffect(() => {
+    // Check session on mount
+    const checkSession = async () => {
+      try {
+        const response = await authAPI.getMe();
+        setUser(response.data);
+      } catch (error) {
+        // Session not valid, user is not authenticated
+        logout();
+      }
+    };
+    checkSession();
+  }, [setUser, logout]);
 
   return (
     <Router>
       <Routes>
-        {!token ? (
+        {!isAuthenticated ? (
           <>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

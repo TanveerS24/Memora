@@ -1,14 +1,23 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import { authAPI } from '../api/api';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, logout } = useStore();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+      logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still logout on frontend even if API call fails
+      logout();
+      navigate('/login');
+    }
   };
 
   if (!user) {

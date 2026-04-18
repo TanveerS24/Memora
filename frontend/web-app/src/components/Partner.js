@@ -12,14 +12,28 @@ const Partner = () => {
   const [searching, setSearching] = useState(false);
   const navigate = useNavigate();
   
-  const { user, partner, isPaired, setPartner, setCouple, setPaired } = useStore();
+  const { setPartner, setCouple, setPaired } = useStore();
 
   useEffect(() => {
-    if (isPaired) {
-      navigate('/dashboard');
-    }
+    // Check for existing partner on mount
+    const checkPartnerStatus = async () => {
+      try {
+        const response = await partnerAPI.getPartnerInfo();
+        if (response.data.is_paired) {
+          setPartner(response.data.partner);
+          setCouple(response.data.couple);
+          setPaired(true);
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        // User doesn't have a partner yet, which is expected
+        console.log('No partner found');
+      }
+    };
+
+    checkPartnerStatus();
     loadPendingRequests();
-  }, [isPaired]);
+  }, [navigate, setPartner, setCouple, setPaired]);
 
   const loadPendingRequests = async () => {
     try {
@@ -130,7 +144,10 @@ const Partner = () => {
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}>
-                <span>Request from: {request.sender_id}</span>
+                <div>
+                  <div style={{ fontWeight: 'bold' }}>{request.sender_name}</div>
+                  <div style={{ color: '#666' }}>@{request.sender_username}</div>
+                </div>
                 <div>
                   <button
                     onClick={() => handleAcceptRequest(request.id)}

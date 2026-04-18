@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Header
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from datetime import datetime
 import os
+import secrets
 
 from database import engine, get_db, Base
 from models import User, PartnerRequest, Couple, Partner, RequestStatus
@@ -11,39 +13,41 @@ from schemas import (
     PartnerSearch, PartnerRequestCreate, PartnerRequestResponse,
     CoupleCreate, CoupleResponse, UserResponse, PartnerInfo
 )
-from auth import decode_token
 from utils import generate_couple_id
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Partner Service", version="1.0.0")
 
+# Add SessionMiddleware with secure cookie settings
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET", secrets.token_urlsafe(32)),
+    max_age=3600,  # 1 hour session
+    session_cookie="session",
+    same_site="lax",
+    https_only=False,  # Set to True in production
+    domain="localhost",  # Share cookie across ports on localhost
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-async def get_current_user(authorization: str = Header(...), db: Session = Depends(get_db)) -> User:
-    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
-    payload = decode_token(token)
-    if payload is None:
+async def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    user_id = request.session.get("user_id")
+    if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail="Not authenticated",
         )
     
-    uid: str = payload.get("sub")
-    if uid is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-        )
-    
-    user = db.query(User).filter(User.uid == uid).first()
+    user = db.query(User).filter(User.uid == user_id).first()
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -124,14 +128,28 @@ def send_partner_request(
     return new_request
 
 
-@app.get("/requests/pending", response_model=list[PartnerRequestResponse])
+@app.get("/requests/pending")
 def get_pending_requests(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     requests = db.query(PartnerRequest).filter(
         PartnerRequest.receiver_id == current_user.uid,
         PartnerRequest.status == RequestStatus.pending
     ).all()
     
-    return requests
+    # Include sender details in response
+    result = []
+    for request in requests:
+        sender = db.query(User).filter(User.uid == request.sender_id).first()
+        result.append({
+            "id": request.id,
+            "sender_id": request.sender_id,
+            "sender_name": sender.name if sender else "Unknown",
+            "sender_username": sender.username if sender else "Unknown",
+            "receiver_id": request.receiver_id,
+            "status": request.status.value,
+            "created_at": request.created_at.isoformat()
+        })
+    
+    return result
 
 
 @app.post("/accept/{request_id}", response_model=CoupleResponse)

@@ -19,7 +19,7 @@ class PartnerRequestCreate(BaseModel):
 
 
 class PartnerRequestResponse(BaseModel):
-    request_id: int
+    id: int
     sender_id: str
     receiver_id: str
     status: RequestStatus

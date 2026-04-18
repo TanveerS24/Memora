@@ -214,7 +214,7 @@ def get_chat_history(
 
 
 @app.post("/send", response_model=MessageResponse)
-def send_message(
+async def send_message(
     message_data: MessageCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -225,11 +225,16 @@ def send_message(
             detail="Not paired with a partner",
         )
     
+    content = message_data.content
+    
+    # Check for @memora trigger
+    is_ai_query = "@memora" in content.lower()
+    
     message = Message(
         message_id=generate_message_id(),
         couple_id=current_user.couple_id,
         sender_id=current_user.uid,
-        content=message_data.content,
+        content=content,
         is_ai_response=False,
         is_read=False,
         timestamp=datetime.utcnow()
@@ -238,6 +243,29 @@ def send_message(
     db.add(message)
     db.commit()
     db.refresh(message)
+    
+    # If AI query, send to RAG and create AI response
+    if is_ai_query:
+        clean_query = content.replace("@memora", "").strip()
+        if clean_query:
+            try:
+                ai_response = await call_rag_service(clean_query, current_user.couple_id)
+                
+                # Create AI message
+                ai_message = Message(
+                    message_id=generate_message_id(),
+                    couple_id=current_user.couple_id,
+                    sender_id="memora_ai",
+                    content=ai_response,
+                    is_ai_response=True,
+                    is_read=False,
+                    timestamp=datetime.utcnow()
+                )
+                
+                db.add(ai_message)
+                db.commit()
+            except Exception as e:
+                print(f"Error calling RAG service: {e}")
     
     return message
 

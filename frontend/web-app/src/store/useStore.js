@@ -2,23 +2,22 @@ import { create } from 'zustand';
 
 export const useStore = create((set) => ({
   user: null,
-  token: null,
   partner: null,
   couple: null,
   isPaired: false,
+  isAuthenticated: false,
   
-  setUser: (user) => set({ user }),
-  setToken: (token) => set({ token }),
+  setUser: (user) => set({ user, isAuthenticated: true }),
   setPartner: (partner) => set({ partner }),
   setCouple: (couple) => set({ couple }),
   setPaired: (isPaired) => set({ isPaired }),
   
   logout: () => set({
     user: null,
-    token: null,
     partner: null,
     couple: null,
     isPaired: false,
+    isAuthenticated: false,
   }),
   
   getTheme: () => {
