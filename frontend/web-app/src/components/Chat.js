@@ -8,6 +8,7 @@ const Chat = () => {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   
   const { user, partner } = useStore();
 
@@ -26,7 +27,7 @@ const Chat = () => {
       
       if (data.type === 'message') {
         setMessages((prevMessages) => {
-          // Check if message already exists to avoid duplicates
+          // Check if message already exists by ID to prevent duplicates
           const exists = prevMessages.some(m => m.message_id === data.data.message_id);
           if (exists) return prevMessages;
           return [...prevMessages, data.data];
@@ -62,13 +63,30 @@ const Chat = () => {
     };
   }, [connectWebSocket]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const scrollToFirstUnread = useCallback(() => {
+    const firstUnread = messages.find(m => 
+      m.sender_id !== user?.uid && !m.is_read
+    );
+    
+    if (firstUnread) {
+      const element = document.getElementById(`message-${firstUnread.message_id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else {
+      scrollToBottom();
+    }
+  }, [messages, user?.uid]);
+
+  useEffect(() => {
+    if (!loading) {
+      scrollToFirstUnread();
+    }
+  }, [messages, loading, scrollToFirstUnread]);
 
   const loadMessages = async () => {
     setLoading(true);
@@ -82,38 +100,38 @@ const Chat = () => {
     }
   };
 
+  // Mark messages as read after scrolling to first unread
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      const hasUnread = messages.some(m => m.sender_id !== user?.uid && !m.is_read);
+      if (hasUnread) {
+        // Delay marking as read to allow scroll to complete
+        setTimeout(() => {
+          chatAPI.markAllAsRead();
+        }, 1000);
+      } else {
+        chatAPI.markAllAsRead();
+      }
+    }
+  }, [loading, messages, user?.uid]);
+
   const handleSendMessage = async () => {
     if (!inputText.trim() || !wsRef.current) return;
 
-    const tempMessage = {
-      message_id: Date.now().toString(),
-      sender_id: user.uid,
-      content: inputText,
-      is_ai_response: false,
-      timestamp: new Date().toISOString(),
-    };
-
-    setMessages([...messages, tempMessage]);
+    const content = inputText;
     setInputText('');
 
-    // Send via websocket
+    // Send via websocket - the server will broadcast it back to all connected clients
     wsRef.current.send(JSON.stringify({
       type: 'message',
-      content: inputText
+      content: content
     }));
-
-    // Also send via API as fallback and for persistence
-    try {
-      await chatAPI.sendMessage(inputText);
-    } catch (error) {
-      console.error('Error sending message via API:', error);
-    }
   };
 
   return (
     <div className="app shared-theme">
       <div style={{
-        minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
         maxWidth: '800px',
@@ -123,28 +141,36 @@ const Chat = () => {
         <div style={{
           padding: '20px',
           borderBottom: '1px solid #eee',
-          background: 'white'
+          background: 'white',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10
         }}>
           <h2 style={{ margin: 0 }}>💬 Chat with {partner?.name || 'Partner'}</h2>
           <p style={{ color: '#666', margin: '5px 0 0 0' }}>Use @memora for AI assistance</p>
         </div>
 
-        <div style={{
-          flex: 1,
-          padding: '20px',
-          overflowY: 'auto',
-          background: '#f5f7fa'
-        }}>
+        <div 
+          ref={messagesContainerRef}
+          style={{
+            flex: 1,
+            padding: '20px',
+            overflowY: 'auto',
+            background: '#f5f7fa'
+          }}
+        >
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>Loading messages...</div>
           ) : (
             messages.map((message) => {
               const isOwn = message.sender_id === user.uid;
               const isAI = message.is_ai_response;
+              const isUnread = !isOwn && !message.is_read;
 
               return (
                 <div
                   key={message.message_id}
+                  id={`message-${message.message_id}`}
                   style={{
                     display: 'flex',
                     justifyContent: isOwn ? 'flex-end' : 'flex-start',
@@ -157,8 +183,21 @@ const Chat = () => {
                     borderRadius: '12px',
                     background: isOwn ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white',
                     color: isOwn ? 'white' : '#333',
-                    boxShadow: isAI ? '0 0 0 2px #FF6B9D' : '0 2px 8px rgba(0,0,0,0.1)'
+                    boxShadow: isAI ? '0 0 0 2px #FF6B9D' : '0 2px 8px rgba(0,0,0,0.1)',
+                    position: 'relative'
                   }}>
+                    {isUnread && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '-8px',
+                        width: '16px',
+                        height: '16px',
+                        background: '#FF6B9D',
+                        borderRadius: '50%',
+                        border: '2px solid white'
+                      }} />
+                    )}
                     {isAI && <div style={{ fontSize: '12px', marginBottom: '5px', fontWeight: 'bold' }}>💖 Memora</div>}
                     <div>{message.content}</div>
                     <div style={{
@@ -182,7 +221,10 @@ const Chat = () => {
           borderTop: '1px solid #eee',
           display: 'flex',
           gap: '10px',
-          background: 'white'
+          background: 'white',
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 10
         }}>
           <input
             type="text"

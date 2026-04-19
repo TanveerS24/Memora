@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 import os
 import httpx
 import secrets
@@ -125,6 +126,8 @@ async def websocket_endpoint(
                 db.commit()
                 db.refresh(message)
                 
+                print(f"Created message: {message.message_id} from {user.uid} in couple {couple_id}")
+                
                 # Broadcast user message
                 await manager.broadcast(couple_id, {
                     "type": "message",
@@ -136,6 +139,8 @@ async def websocket_endpoint(
                         "timestamp": message.timestamp.isoformat()
                     }
                 })
+                
+                print(f"Broadcasted message: {message.message_id} to couple {couple_id}")
                 
                 # If AI query, send to RAG and broadcast response
                 if is_ai_query:
@@ -274,6 +279,79 @@ async def send_message(
                 print(f"Error calling RAG service: {e}")
     
     return message
+
+
+class MarkAsReadRequest(BaseModel):
+    message_id: str
+
+@app.post("/read")
+def mark_message_as_read(
+    request: MarkAsReadRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user.couple_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not paired with a partner",
+        )
+    
+    message = db.query(Message).filter(
+        Message.message_id == request.message_id,
+        Message.couple_id == current_user.couple_id,
+        Message.sender_id != current_user.uid  # Can only mark messages from partner as read
+    ).first()
+    
+    if not message:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Message not found",
+        )
+    
+    message.is_read = True
+    db.commit()
+    
+    return {"status": "success", "message_id": request.message_id}
+
+
+@app.post("/read/all")
+def mark_all_messages_as_read(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user.couple_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not paired with a partner",
+        )
+    
+    # Mark all messages from partner as read
+    db.query(Message).filter(
+        Message.couple_id == current_user.couple_id,
+        Message.sender_id != current_user.uid,
+        Message.is_read == False
+    ).update({"is_read": True})
+    
+    db.commit()
+    
+    return {"status": "success"}
+
+
+@app.get("/unread/count")
+def get_unread_count(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user.couple_id:
+        return {"unread_count": 0}
+    
+    unread_count = db.query(Message).filter(
+        Message.couple_id == current_user.couple_id,
+        Message.sender_id != current_user.uid,
+        Message.is_read == False
+    ).count()
+    
+    return {"unread_count": unread_count}
 
 
 @app.get("/health")

@@ -1,7 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { chatAPI } from '../api/api';
 
 const Dashboard = () => {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await chatAPI.getUnreadCount();
+      setUnreadCount(response.data.unread_count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
   return (
     <div className="app shared-theme">
       <div style={{
@@ -25,11 +44,37 @@ const Dashboard = () => {
               borderRadius: '16px',
               boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
               cursor: 'pointer',
-              transition: 'transform 0.2s'
+              transition: 'transform 0.2s',
+              position: 'relative'
             }}>
+              {unreadCount > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '20px',
+                  right: '20px',
+                  background: '#FF6B9D',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </div>
+              )}
               <div style={{ fontSize: '48px', marginBottom: '15px' }}>💬</div>
               <h3 style={{ marginBottom: '10px' }}>Chat</h3>
               <p style={{ color: '#666' }}>Message your partner with AI assistance</p>
+              {unreadCount > 0 && (
+                <p style={{ color: '#FF6B9D', fontSize: '14px', marginTop: '10px', fontWeight: '500' }}>
+                  {unreadCount} unread message{unreadCount > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
           </Link>
 

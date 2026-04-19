@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { useStore } from '../store/useStore';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 const AUTH_BASE_URL = 'http://localhost:8001';
@@ -57,6 +56,9 @@ export const partnerAPI = {
 export const chatAPI = {
   getHistory: (limit = 50, offset = 0) => chatApi.get('/history', { params: { limit, offset } }),
   sendMessage: (content) => chatApi.post('/send', { content }),
+  markAsRead: (messageId) => chatApi.post('/read', { message_id: messageId }),
+  markAllAsRead: () => chatApi.post('/read/all'),
+  getUnreadCount: () => chatApi.get('/unread/count'),
 };
 
 export const memoryAPI = {
