@@ -6,9 +6,11 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const aiTimeoutRef = useRef(null);
   
   const { user, partner } = useStore();
 
@@ -30,6 +32,15 @@ const Chat = () => {
           // Check if message already exists by ID to prevent duplicates
           const exists = prevMessages.some(m => m.message_id === data.data.message_id);
           if (exists) return prevMessages;
+          
+          // If AI response received, clear loading state
+          if (data.data.is_ai_response) {
+            setAiLoading(false);
+            if (aiTimeoutRef.current) {
+              clearTimeout(aiTimeoutRef.current);
+            }
+          }
+          
           return [...prevMessages, data.data];
         });
       } else if (data.type === 'typing') {
@@ -59,6 +70,9 @@ const Chat = () => {
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
+      }
+      if (aiTimeoutRef.current) {
+        clearTimeout(aiTimeoutRef.current);
       }
     };
   }, [connectWebSocket]);
@@ -119,7 +133,21 @@ const Chat = () => {
     if (!inputText.trim() || !wsRef.current) return;
 
     const content = inputText;
+    const isAiQuery = content.toLowerCase().includes('@memora');
     setInputText('');
+
+    // If AI query, show loading state with 45s timeout
+    if (isAiQuery) {
+      setAiLoading(true);
+      // Clear any existing timeout
+      if (aiTimeoutRef.current) {
+        clearTimeout(aiTimeoutRef.current);
+      }
+      // Set 45 second timeout to clear loading state
+      aiTimeoutRef.current = setTimeout(() => {
+        setAiLoading(false);
+      }, 45000);
+    }
 
     // Send via websocket - the server will broadcast it back to all connected clients
     wsRef.current.send(JSON.stringify({
@@ -173,7 +201,7 @@ const Chat = () => {
                   id={`message-${message.message_id}`}
                   style={{
                     display: 'flex',
-                    justifyContent: isOwn ? 'flex-end' : 'flex-start',
+                    justifyContent: isAI ? 'center' : (isOwn ? 'flex-end' : 'flex-start'),
                     marginBottom: '15px'
                   }}
                 >
@@ -222,38 +250,60 @@ const Chat = () => {
           display: 'flex',
           gap: '10px',
           background: 'white',
-          position: 'sticky',
-          bottom: 0,
+          position: 'relative',
           zIndex: 10
         }}>
+          {aiLoading && (
+            <div style={{
+              position: 'absolute',
+              top: '-40px',
+              left: '20px',
+              right: '20px',
+              padding: '10px 15px',
+              background: 'linear-gradient(135deg, #FF6B9D 0%, #feca57 100%)',
+              color: 'white',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              animation: 'pulse 2s infinite'
+            }}>
+              💖 Memora is thinking...
+            </div>
+          )}
           <input
             type="text"
             placeholder="Type a message... (@memora for AI)"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            disabled={aiLoading}
             style={{
               flex: 1,
               padding: '12px',
               border: '1px solid #ddd',
               borderRadius: '24px',
-              fontSize: '16px'
+              fontSize: '16px',
+              opacity: aiLoading ? 0.6 : 1
             }}
           />
           <button
             onClick={handleSendMessage}
+            disabled={aiLoading}
             style={{
               padding: '12px 24px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: aiLoading ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '24px',
               fontSize: '16px',
               fontWeight: 'bold',
-              cursor: 'pointer'
+              cursor: aiLoading ? 'not-allowed' : 'pointer',
+              opacity: aiLoading ? 0.6 : 1
             }}
           >
-            Send
+            {aiLoading ? '...' : 'Send'}
           </button>
         </div>
       </div>

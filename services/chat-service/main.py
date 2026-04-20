@@ -62,7 +62,7 @@ async def call_rag_service(query: str, couple_id: str) -> str:
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
-                f"{RAG_SERVICE_URL}/api/rag/query",
+                f"{RAG_SERVICE_URL}/query",
                 json={"query": query, "couple_id": couple_id},
                 timeout=30.0
             )
@@ -108,8 +108,11 @@ async def websocket_endpoint(
             if message_type == "message":
                 content = data.get("content", "")
                 
+                print(f"Received message: '{content}' from user {user.uid}")
+                
                 # Check for @memora trigger
                 is_ai_query = "@memora" in content.lower()
+                print(f"@memora detected: {is_ai_query}")
                 
                 # Create message
                 message = Message(
@@ -144,25 +147,31 @@ async def websocket_endpoint(
                 
                 # If AI query, send to RAG and broadcast response
                 if is_ai_query:
+                    print(f"AI query detected! Processing @memora request...")
                     # Remove @memora from query
                     clean_query = content.replace("@memora", "").strip()
+                    print(f"Clean query: '{clean_query}'")
                     if clean_query:
+                        print(f"Calling RAG service with query: '{clean_query}', couple_id: {couple_id}")
                         ai_response = await call_rag_service(clean_query, couple_id)
+                        print(f"RAG response received: '{ai_response[:100]}...' (truncated)")
                         
                         # Create AI message
                         ai_message = Message(
                             message_id=generate_message_id(),
                             couple_id=couple_id,
-                            sender_id="memora_ai",
+                            sender_id=None,
                             content=ai_response,
                             is_ai_response=True,
-                            is_read=False,
+                            is_read=True,  # AI messages are automatically read
                             timestamp=datetime.utcnow()
                         )
                         
                         db.add(ai_message)
                         db.commit()
                         db.refresh(ai_message)
+                        
+                        print(f"Created AI message: {ai_message.message_id}")
                         
                         # Broadcast AI response
                         await manager.broadcast(couple_id, {
@@ -175,6 +184,7 @@ async def websocket_endpoint(
                                 "timestamp": ai_message.timestamp.isoformat()
                             }
                         })
+                        print(f"Broadcasted AI response: {ai_message.message_id}")
             
             elif message_type == "typing":
                 await manager.broadcast(couple_id, {
@@ -352,6 +362,18 @@ def get_unread_count(
     ).count()
     
     return {"unread_count": unread_count}
+
+
+@app.post("/admin/reset-messages")
+def reset_messages_table(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Admin endpoint to truncate all messages - for development only"""
+    from sqlalchemy import text
+    db.execute(text("TRUNCATE TABLE messages"))
+    db.commit()
+    return {"status": "success", "message": "Messages table reset"}
 
 
 @app.get("/health")

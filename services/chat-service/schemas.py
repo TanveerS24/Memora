@@ -10,7 +10,7 @@ class MessageCreate(BaseModel):
 class MessageResponse(BaseModel):
     message_id: str
     couple_id: str
-    sender_id: str
+    sender_id: Optional[str] = None
     content: str
     is_ai_response: bool
     is_read: bool

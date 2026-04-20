@@ -46,6 +46,8 @@ def query_memories(
     rag_data: RAGQuery,
     db: Session = Depends(get_db)
 ):
+    print(f"Received RAG query: query='{rag_data.query}', couple_id='{rag_data.couple_id}', mode='{rag_data.mode}'")
+    
     # Build where clause
     where = build_where_clause(rag_data.couple_id, rag_data.include_archived)
     
@@ -63,14 +65,20 @@ def query_memories(
             for meta in results["metadatas"][0]:
                 source_ids.append(meta.get("memory_id", ""))
     
+    print(f"Found {len(memories)} memories, {len(source_ids)} source IDs")
+    
     # Build context
     context = PromptBuilder.build_context(memories)
     
     # Build prompt
     prompt = PromptBuilder.build_prompt(rag_data.query, context, rag_data.mode)
     
+    print(f"Generated prompt length: {len(prompt)} characters")
+    
     # Generate response
     response = ollama_client.generate_response(prompt)
+    
+    print(f"Generated response length: {len(response)} characters")
     
     return RAGResponse(
         response=response,

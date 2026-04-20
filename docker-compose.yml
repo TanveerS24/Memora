@@ -225,6 +225,8 @@ services:
         condition: service_started
     networks:
       - memora-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Media Service
   media-service:
