@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { authAPI } from '../api/api';
@@ -6,6 +6,7 @@ import { authAPI } from '../api/api';
 const Profile = () => {
   const navigate = useNavigate();
   const { user, logout } = useStore();
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -17,6 +18,25 @@ const Profile = () => {
       // Still logout on frontend even if API call fails
       logout();
       navigate('/login');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.')) {
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      await authAPI.deleteAccount();
+      logout();
+      navigate('/login');
+      alert('Your account has been successfully deleted.');
+    } catch (error) {
+      console.error('Delete account error:', error);
+      alert('Failed to delete account. Please try again.');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -159,13 +179,41 @@ const Profile = () => {
               fontSize: '16px',
               fontWeight: 'bold',
               cursor: 'pointer',
-              transition: 'background 0.2s'
+              transition: 'background 0.2s',
+              marginBottom: '15px'
             }}
             onMouseOver={(e) => e.target.style.background = '#d32f2f'}
             onMouseOut={(e) => e.target.style.background = '#f44336'}
           >
             Logout
           </button>
+
+          <div style={{ borderTop: '1px solid #eee', paddingTop: '20px', marginTop: '10px' }}>
+            <h3 style={{ color: '#666', fontSize: '14px', marginBottom: '10px' }}>Danger Zone</h3>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleteLoading}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: deleteLoading ? '#ccc' : '#c62828',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: deleteLoading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => !deleteLoading && (e.target.style.background = '#b71c1c')}
+              onMouseOut={(e) => !deleteLoading && (e.target.style.background = '#c62828')}
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete Account'}
+            </button>
+            <p style={{ fontSize: '12px', color: '#999', marginTop: '8px', textAlign: 'center' }}>
+              This will permanently delete your account and all associated data.
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from datetime import datetime, timedelta
 import os
 import secrets
@@ -135,6 +136,66 @@ def get_me(current_user: User = Depends(get_current_user)):
 def logout(request: Request):
     request.session.clear()
     return {"message": "Logged out successfully"}
+
+
+@app.delete("/account")
+def delete_account(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete user account and all associated data, reset partner relationship"""
+    user_id = current_user.uid
+    couple_id = current_user.couple_id
+    
+    try:
+        # If user has a partner, reset the partner's couple_id first
+        if couple_id:
+            # Find the partner (the other user in the couple)
+            partner = db.query(User).filter(
+                User.couple_id == couple_id,
+                User.uid != user_id
+            ).first()
+            
+            if partner:
+                # Reset partner's couple_id to NULL so they go back to "connect with partner" page
+                partner.couple_id = None
+                print(f"Reset partner {partner.uid} couple_id to None")
+            
+            # Delete all messages for this couple
+            db.execute(text("DELETE FROM messages WHERE couple_id = :couple_id"), {"couple_id": couple_id})
+            print(f"Deleted all messages for couple {couple_id}")
+            
+            # Delete partner records first (due to foreign key constraint)
+            db.execute(text("DELETE FROM partners WHERE couple_id = :couple_id"), {"couple_id": couple_id})
+            print(f"Deleted partner records for couple {couple_id}")
+            
+            # Delete the couple record
+            db.execute(text("DELETE FROM couples WHERE couple_id = :couple_id"), {"couple_id": couple_id})
+            print(f"Deleted couple record {couple_id}")
+        
+        # Delete any partner requests sent by or received by this user
+        db.execute(text("DELETE FROM partner_requests WHERE sender_id = :user_id OR receiver_id = :user_id"), {"user_id": user_id})
+        print(f"Deleted partner requests for user {user_id}")
+        
+        # Delete the user
+        db.query(User).filter(User.uid == user_id).delete()
+        print(f"Deleted user {user_id}")
+        
+        db.commit()
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error during account deletion: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete account: {str(e)}"
+        )
+    
+    # Clear session
+    request.session.clear()
+    
+    return {"message": "Account deleted successfully. Your partner has been unlinked and can connect with a new partner."}
 
 
 @app.get("/health")

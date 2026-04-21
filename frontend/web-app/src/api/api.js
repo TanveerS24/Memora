@@ -42,6 +42,7 @@ export const authAPI = {
   login: (data) => authApi.post('/login', data),
   getMe: () => authApi.get('/me'),
   logout: () => authApi.post('/logout'),
+  deleteAccount: () => authApi.delete('/account'),
 };
 
 export const partnerAPI = {
