@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { useStore } from '../../store/useStore';
 import { authAPI } from '../../api/api';
 
@@ -39,10 +40,17 @@ const Register = () => {
         dob: new Date(formData.dob).toISOString().split('T')[0]
       });
       setUser(response.data);
-      alert('Account created successfully!');
-      navigate('/login');
+      toast.success('Welcome to Memora! Your account has been created. 💕', {
+        position: 'top-center',
+        autoClose: 3000,
+        theme: 'colored'
+      });
+      navigate('/dashboard');
     } catch (error) {
-      alert('Registration Failed: ' + (error.response?.data?.detail || 'An error occurred'));
+      toast.error('Registration Failed: ' + (error.response?.data?.detail || 'An error occurred'), {
+        position: 'top-center',
+        theme: 'colored'
+      });
     } finally {
       setLoading(false);
     }

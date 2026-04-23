@@ -6,7 +6,7 @@ const LoveFeed = () => {
   const [memory, setMemory] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  const { user } = useStore();
+  // const { user } = useStore(); // Unused for now
 
   useEffect(() => {
     loadLoveFeed();

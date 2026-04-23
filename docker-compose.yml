@@ -13,9 +13,9 @@ services:
     image: postgres:15-alpine
     container_name: memora-postgres
     environment:
-      POSTGRES_USER: memora
-      POSTGRES_PASSWORD: memora_password
-      POSTGRES_DB: memora
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -87,27 +87,35 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - AUTH_SERVICE_URL=http://auth-service:8001
-      - PARTNER_SERVICE_URL=http://partner-service:8002
-      - CHAT_SERVICE_URL=http://chat-service:8003
-      - MEMORY_SERVICE_URL=http://memory-service:8004
-      - RAG_SERVICE_URL=http://rag-service:8005
-      - MEDIA_SERVICE_URL=http://media-service:8006
-      - INSIGHT_SERVICE_URL=http://insight-service:8007
-      - SCHEDULER_SERVICE_URL=http://scheduler-service:8008
-      - JWT_SECRET=your-secret-key-change-in-production
-      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+      - PARTNER_SERVICE_URL=${PARTNER_SERVICE_URL}
+      - CHAT_SERVICE_URL=${CHAT_SERVICE_URL}
+      - MEMORY_SERVICE_URL=${MEMORY_SERVICE_URL}
+      - RAG_SERVICE_URL=${RAG_SERVICE_URL}
+      - MEDIA_SERVICE_URL=${MEDIA_SERVICE_URL}
+      - INSIGHT_SERVICE_URL=${INSIGHT_SERVICE_URL}
+      - SCHEDULER_SERVICE_URL=${SCHEDULER_SERVICE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - POSTGRES_URL=${POSTGRES_URL}
     depends_on:
-      - postgres
-      - auth-service
-      - partner-service
-      - chat-service
-      - memory-service
-      - rag-service
-      - media-service
-      - insight-service
-      - scheduler-service
-      - chroma
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      partner-service:
+        condition: service_started
+      chat-service:
+        condition: service_started
+      memory-service:
+        condition: service_started
+      rag-service:
+        condition: service_started
+      media-service:
+        condition: service_started
+      insight-service:
+        condition: service_started
+      scheduler-service:
+        condition: service_started
     networks:
       - memora-network
 
@@ -120,11 +128,11 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
-      - JWT_SECRET=your-secret-key-change-in-production
-      - SERVICE_PORT=8001
-      - SESSION_SECRET=your-session-secret-change-in-production
-      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=${POSTGRES_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_PORT=${AUTH_PORT}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - REDIS_URL=${REDIS_URL}
     depends_on:
       postgres:
         condition: service_healthy
@@ -142,14 +150,16 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
-      - JWT_SECRET=your-secret-key-change-in-production
-      - SERVICE_PORT=8002
-      - SESSION_SECRET=your-session-secret-change-in-production
-      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=${POSTGRES_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_PORT=${PARTNER_PORT}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - REDIS_URL=${REDIS_URL}
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
       redis:
         condition: service_healthy
     networks:
@@ -164,15 +174,19 @@ services:
     ports:
       - "8003:8003"
     environment:
-      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
-      - JWT_SECRET=your-secret-key-change-in-production
-      - RAG_SERVICE_URL=http://rag-service:8005
-      - SERVICE_PORT=8003
-      - SESSION_SECRET=your-session-secret-change-in-production
-      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=${POSTGRES_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - RAG_SERVICE_URL=${RAG_SERVICE_URL}
+      - SERVICE_PORT=${CHAT_PORT}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - REDIS_URL=${REDIS_URL}
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      partner-service:
+        condition: service_started
       rag-service:
         condition: service_started
       redis:
@@ -189,14 +203,18 @@ services:
     ports:
       - "8004:8004"
     environment:
-      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
-      - CHROMA_URL=http://chroma:8000
-      - JWT_SECRET=your-secret-key-change-in-production
-      - MEDIA_SERVICE_URL=http://media-service:8006
-      - SERVICE_PORT=8004
+      - POSTGRES_URL=${POSTGRES_URL}
+      - CHROMA_URL=${CHROMA_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - MEDIA_SERVICE_URL=${MEDIA_SERVICE_URL}
+      - SERVICE_PORT=${MEMORY_PORT}
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      partner-service:
+        condition: service_started
       chroma:
         condition: service_started
       media-service:
@@ -213,14 +231,18 @@ services:
     ports:
       - "8005:8005"
     environment:
-      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
-      - CHROMA_URL=http://chroma:8000
-      - OLLAMA_URL=http://host.docker.internal:11434
-      - JWT_SECRET=your-secret-key-change-in-production
-      - SERVICE_PORT=8005
+      - POSTGRES_URL=${POSTGRES_URL}
+      - CHROMA_URL=${CHROMA_URL}
+      - OLLAMA_URL=${OLLAMA_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_PORT=${RAG_PORT}
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      partner-service:
+        condition: service_started
       chroma:
         condition: service_started
     networks:
@@ -237,15 +259,19 @@ services:
     ports:
       - "8006:8006"
     environment:
-      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
-      - JWT_SECRET=your-secret-key-change-in-production
-      - SERVICE_PORT=8006
-      - MEDIA_STORAGE_PATH=/app/media
+      - POSTGRES_URL=${POSTGRES_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_PORT=${MEDIA_PORT}
+      - MEDIA_STORAGE_PATH=${MEDIA_STORAGE_PATH}
     volumes:
       - media_storage:/app/media
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      partner-service:
+        condition: service_started
     networks:
       - memora-network
 
@@ -258,12 +284,16 @@ services:
     ports:
       - "8007:8007"
     environment:
-      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
-      - JWT_SECRET=your-secret-key-change-in-production
-      - SERVICE_PORT=8007
+      - POSTGRES_URL=${POSTGRES_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVICE_PORT=${INSIGHT_PORT}
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      partner-service:
+        condition: service_started
     networks:
       - memora-network
 
@@ -276,13 +306,17 @@ services:
     ports:
       - "8008:8008"
     environment:
-      - POSTGRES_URL=postgresql://memora:memora_password@postgres:5432/memora
-      - JWT_SECRET=your-secret-key-change-in-production
-      - MEMORY_SERVICE_URL=http://memory-service:8004
-      - SERVICE_PORT=8008
+      - POSTGRES_URL=${POSTGRES_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - MEMORY_SERVICE_URL=${MEMORY_SERVICE_URL}
+      - SERVICE_PORT=${SCHEDULER_PORT}
     depends_on:
       postgres:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      partner-service:
+        condition: service_started
       memory-service:
         condition: service_started
     networks:

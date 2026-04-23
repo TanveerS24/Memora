@@ -34,8 +34,8 @@ class Couple(Base):
 class Partner(Base):
     __tablename__ = "partners"
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String(36), ForeignKey("users.uid"), primary_key=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(String(36), ForeignKey("users.uid"), nullable=False, index=True)
     partner_id = Column(String(36), ForeignKey("users.uid"), nullable=False)
     couple_id = Column(String(36), ForeignKey("couples.couple_id"), nullable=False)
 

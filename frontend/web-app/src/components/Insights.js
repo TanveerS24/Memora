@@ -6,7 +6,7 @@ const Insights = () => {
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  const { user } = useStore();
+  // const { user } = useStore(); // Unused for now
 
   useEffect(() => {
     loadInsights();

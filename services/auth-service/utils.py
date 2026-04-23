@@ -8,6 +8,6 @@ def generate_uid() -> str:
 
 
 def generate_username(name: str) -> str:
-    name_clean = name.lower().replace(" ", "")
-    random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
-    return f"{name_clean}{random_suffix}"
+    # Clean name: lowercase, remove spaces and special characters
+    name_clean = ''.join(c for c in name.lower() if c.isalnum())
+    return name_clean

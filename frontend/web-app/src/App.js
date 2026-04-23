@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { useStore } from './store/useStore';
 import { authAPI } from './api/api';
 
@@ -33,6 +35,16 @@ const App = () => {
 
   return (
     <Router>
+      <ToastContainer
+        position="top-center"
+        autoClose={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        theme="colored"
+      />
       <Routes>
         {!isAuthenticated ? (
           <>
@@ -49,7 +61,7 @@ const App = () => {
             <Route path="/lovefeed" element={<LoveFeed />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="*" element={<Navigate to="/partner" />} />
+            <Route path="*" element={<Navigate to="/dashboard" />} />
           </>
         )}
       </Routes>

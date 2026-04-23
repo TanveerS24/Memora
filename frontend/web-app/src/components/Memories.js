@@ -6,7 +6,7 @@ const Memories = () => {
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  const { user } = useStore();
+  // const { user } = useStore(); // Unused for now
 
   useEffect(() => {
     loadTimeline();

@@ -22,7 +22,7 @@ const Login = () => {
     try {
       const response = await authAPI.login({ email, password });
       setUser(response.data);
-      navigate('/partner');
+      navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       alert('Login Failed: ' + (error.response?.data?.detail || 'An error occurred'));

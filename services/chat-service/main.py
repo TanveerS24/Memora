@@ -15,7 +15,7 @@ from auth import decode_token
 from utils import generate_message_id
 from connection_manager import manager
 
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine, checkfirst=True)
 
 app = FastAPI(title="Chat Service", version="1.0.0")
 
@@ -31,7 +31,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://172.31.144.1:3000", "http://172.31.144.1:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

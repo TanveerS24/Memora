@@ -5,8 +5,8 @@ import os
 class OllamaClient:
     def __init__(self):
         self.host = os.getenv("OLLAMA_URL", "http://ollama:11434")
-        # Use smaller model that fits in available memory (2GB instead of 4GB)
-        self.model = "phi3:mini"
+        # Use llama3.1:8b for generation (available locally)
+        self.model = "llama3.1:8b"
         self.embedding_model = "nomic-embed-text"
         print(f"OllamaClient initialized with host: {self.host}, model: {self.model}")
     

@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
-const AUTH_BASE_URL = 'http://localhost:8001';
-const PARTNER_BASE_URL = 'http://localhost:8002';
-const CHAT_BASE_URL = 'http://localhost:8003';
+// Use environment variables or fallback to localhost
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
+const AUTH_BASE_URL = process.env.REACT_APP_AUTH_BASE_URL || 'http://localhost:8001';
+const PARTNER_BASE_URL = process.env.REACT_APP_PARTNER_BASE_URL || 'http://localhost:8002';
+const CHAT_BASE_URL = process.env.REACT_APP_CHAT_BASE_URL || 'http://localhost:8003';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -52,6 +53,7 @@ export const partnerAPI = {
   acceptRequest: (requestId, anniversaryDate) => partnerApi.post(`/accept/${requestId}`, { anniversary_date: anniversaryDate }),
   rejectRequest: (requestId) => partnerApi.post(`/reject/${requestId}`),
   getPartnerInfo: () => partnerApi.get('/info'),
+  unpair: () => partnerApi.delete('/unpair'),
 };
 
 export const chatAPI = {

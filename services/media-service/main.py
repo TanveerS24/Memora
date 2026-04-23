@@ -11,13 +11,13 @@ from schemas import MediaUploadResponse
 from auth import decode_token
 from utils import generate_media_id, get_file_extension, get_mime_type, get_media_type, create_thumbnail
 
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine, checkfirst=True)
 
 app = FastAPI(title="Media Service", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://172.31.144.1:3000", "http://172.31.144.1:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

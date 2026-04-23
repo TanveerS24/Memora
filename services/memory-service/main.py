@@ -8,6 +8,7 @@ import os
 import httpx
 
 from database import engine, get_db, Base
+Base.metadata.create_all(bind=engine, checkfirst=True)
 from models import Memory, MemoryChunk, TimeCapsule, User, MemoryLayer
 from schemas import (
     MemoryIngest, MemoryPreview, MemoryConfirm, MemoryResponse,
@@ -21,7 +22,7 @@ app = FastAPI(title="Memory Service", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://172.31.144.1:3000", "http://172.31.144.1:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

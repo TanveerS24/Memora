@@ -13,7 +13,7 @@ from schemas import UserRegister, UserLogin, UserResponse
 from auth import verify_password, get_password_hash
 from utils import generate_uid, generate_username
 
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine, checkfirst=True)
 
 app = FastAPI(title="Auth Service", version="1.0.0")
 
@@ -29,7 +29,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://172.31.144.1:3000", "http://172.31.144.1:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,7 +55,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
 
 
 @app.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user_data: UserRegister, db: Session = Depends(get_db)):
+def register(user_data: UserRegister, request: Request, db: Session = Depends(get_db)):
     # Check if email already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
@@ -100,6 +100,10 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
+    # Create session for the new user (auto-login after registration)
+    request.session["user_id"] = new_user.uid
+    request.session["email"] = new_user.email
     
     return new_user
 

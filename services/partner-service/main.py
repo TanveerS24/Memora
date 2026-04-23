@@ -15,7 +15,7 @@ from schemas import (
 )
 from utils import generate_couple_id
 
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine, checkfirst=True)
 
 app = FastAPI(title="Partner Service", version="1.0.0")
 
@@ -31,7 +31,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://172.31.144.1:3000", "http://172.31.144.1:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -257,6 +257,51 @@ def get_partner_info(current_user: User = Depends(get_current_user), db: Session
         couple=couple,
         is_paired=True
     )
+
+
+@app.delete("/unpair")
+def unpair_partner(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.couple_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are not currently paired with anyone",
+        )
+    
+    couple_id = current_user.couple_id
+    
+    # Find the partner
+    partner = db.query(User).filter(
+        User.couple_id == couple_id,
+        User.uid != current_user.uid
+    ).first()
+    
+    # Get couple info for cleanup
+    from sqlalchemy import text
+    
+    try:
+        # Delete messages for this couple
+        db.execute(text("DELETE FROM messages WHERE couple_id = :couple_id"), {"couple_id": couple_id})
+        
+        # Delete the couple record
+        couple = db.query(Couple).filter(Couple.couple_id == couple_id).first()
+        if couple:
+            db.delete(couple)
+        
+        # Reset both users' couple_id to None
+        current_user.couple_id = None
+        if partner:
+            partner.couple_id = None
+        
+        db.commit()
+        
+        return {"message": "Successfully unpaired from partner"}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to unpair: {str(e)}",
+        )
 
 
 @app.get("/health")
